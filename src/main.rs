@@ -189,7 +189,7 @@ fn show_recent_history(stats: &GameStats) {
     let recent_games = stats.game_history.iter().rev().take(5);
     
     for (i, game) in recent_games.enumerate() {
-        let result_icon = if game.won { "��" } else { "💀" };
+        let result_icon = if game.won { "🏆" } else { "💀" };
         
         println!("{}. {} {} - {} attempts, {} lives left ({})", 
             i + 1,
@@ -204,7 +204,67 @@ fn show_recent_history(stats: &GameStats) {
     println!("{}", "─".repeat(50).bright_blue());
 }
 
-fn main() {
+// Function to display and handle the main menu
+fn show_main_menu() -> u32 {
+    let options = vec!["🎮 Start New Game", "📊 View Statistics", "🔄 Reset Statistics", "🚪 Exit Game"];
+    
+    let selection = Select::new()
+        .with_prompt("🎯 Welcome to The Ultimate Guessing Game!")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+    
+    selection as u32
+}
+
+// Function to handle the "View Statistics" option
+fn handle_view_stats() {
+    let stats = load_stats();
+    
+    clear_screen();
+    show_game_title();
+    
+    if stats.total_games == 0 {
+        println!("{}", "📊 No games played yet! Start a game to see statistics.".yellow());
+    } else {
+        show_statistics(&stats);
+        show_recent_history(&stats);
+    }
+    
+    println!();
+    println!("{}", "Press Enter to return to main menu...".bright_cyan());
+    let _ = std::io::stdin().read_line(&mut String::new());
+}
+
+// Function to handle the "Reset Statistics" option
+fn handle_reset_stats() -> bool {
+    let options = vec!["❌ No, keep my statistics", "✅ Yes, reset all statistics"];
+    
+    let selection = Select::new()
+        .with_prompt("⚠️  Are you sure you want to reset all statistics?")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+    
+    if selection == 1 {
+        // User confirmed reset
+        let new_stats = GameStats::new();
+        if let Err(e) = save_stats(&new_stats) {
+            println!("{}", format!("❌ Failed to reset statistics: {}", e).red());
+            return false;
+        }
+        println!("{}", "✅ Statistics have been reset!".green());
+        true
+    } else {
+        println!("{}", "✅ Statistics kept unchanged.".green());
+        false
+    }
+}
+
+// Function to play a single game
+fn play_game() {
     // Load existing statistics
     let mut stats = load_stats();
     
@@ -339,5 +399,48 @@ fn main() {
     show_recent_history(&stats);
     
     println!();
-    println!("{}", "Thanks for playing! 🎮".bright_cyan());
+    println!("{}", "Press Enter to return to main menu...".bright_cyan());
+    let _ = std::io::stdin().read_line(&mut String::new());
+}
+
+fn main() {
+    loop {
+        clear_screen();
+        show_game_title();
+        
+        let choice = show_main_menu();
+        
+        match choice {
+            0 => {
+                // Start New Game
+                play_game();
+            },
+            1 => {
+                // View Statistics
+                handle_view_stats();
+            },
+            2 => {
+                // Reset Statistics
+                clear_screen();
+                show_game_title();
+                let _ = handle_reset_stats();
+                
+                println!();
+                println!("{}", "Press Enter to return to main menu...".bright_cyan());
+                let _ = std::io::stdin().read_line(&mut String::new());
+            },
+            3 => {
+                // Exit Game
+                clear_screen();
+                println!();
+                println!("{}", "🎮 Thanks for playing The Ultimate Guessing Game! 🎮".bright_cyan());
+                println!("{}", "👋 Come back soon! 👋".bright_yellow());
+                println!();
+                break;
+            },
+            _ => {
+                println!("{}", "Invalid choice! Please try again.".red());
+            }
+        }
+    }
 }
