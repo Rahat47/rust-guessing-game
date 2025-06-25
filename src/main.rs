@@ -1,8 +1,48 @@
 use std::cmp::Ordering;
+use std::fs;
+use std::io;
 use rand::Rng;
 use colored::*;
 use console::Term;
 use dialoguer::{Input, Select};
+use serde::{Serialize, Deserialize};
+use serde_json;
+use chrono;
+
+// This struct represents a single game result
+#[derive(Serialize, Deserialize, Clone)]
+struct GameResult {
+    attempts: u32,
+    lives_remaining: u32,
+    won: bool,
+    difficulty: String,
+    timestamp: String,
+}
+
+// This struct holds all our game statistics
+#[derive(Serialize, Deserialize)]
+struct GameStats {
+    total_games: u32,
+    games_won: u32,
+    games_lost: u32,
+    total_attempts: u32,
+    best_score: Option<u32>, // lowest attempts for a win
+    game_history: Vec<GameResult>,
+}
+
+// Implementation block for GameStats
+impl GameStats {
+    fn new() -> Self {
+        GameStats {
+            total_games: 0,
+            games_won: 0,
+            games_lost: 0,
+            total_attempts: 0,
+            best_score: None,
+            game_history: Vec::new(),
+        }
+    }
+}
 
 fn clear_screen() {
     let term = Term::stdout();
@@ -71,7 +111,103 @@ fn show_difficulty_menu() -> u32 {
     }
 }
 
+// Function to load existing statistics from file
+fn load_stats() -> GameStats {
+    match fs::read_to_string("game_stats.json") {
+        Ok(content) => {
+            // Try to parse the JSON content
+            match serde_json::from_str(&content) {
+                Ok(stats) => stats,
+                Err(_) => {
+                    println!("{}", "⚠️  Corrupted stats file, starting fresh".yellow());
+                    GameStats::new()
+                }
+            }
+        }
+        Err(_) => {
+            // File doesn't exist, create new stats
+            GameStats::new()
+        }
+    }
+}
+
+// Function to save statistics to file
+fn save_stats(stats: &GameStats) -> Result<(), io::Error> {
+    let json_content = serde_json::to_string_pretty(stats)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    fs::write("game_stats.json", json_content)
+}
+
+// Function to get difficulty name from lives count
+fn get_difficulty_name(lives: u32) -> String {
+    match lives {
+        10 => "Easy".to_string(),
+        5 => "Medium".to_string(),
+        3 => "Hard".to_string(),
+        _ => format!("Custom ({})", lives),
+    }
+}
+
+// Function to display current game statistics
+fn show_statistics(stats: &GameStats) {
+    println!();
+    println!("{}", "📊 GAME STATISTICS 📊".bright_cyan());
+    println!("{}", "=".repeat(40).bright_blue());
+    
+    println!("{}", format!("🎮 Total Games: {}", stats.total_games).white());
+    println!("{}", format!("🏆 Games Won: {}", stats.games_won).green());
+    println!("{}", format!("💀 Games Lost: {}", stats.games_lost).red());
+    
+    if stats.total_games > 0 {
+        let win_rate = (stats.games_won as f64 / stats.total_games as f64) * 100.0;
+        println!("{}", format!("📈 Win Rate: {:.1}%", win_rate).yellow());
+        
+        let avg_attempts = stats.total_attempts as f64 / stats.total_games as f64;
+        println!("{}", format!("📊 Average Attempts: {:.1}", avg_attempts).cyan());
+    }
+    
+    if let Some(best) = stats.best_score {
+        println!("{}", format!("🥇 Best Score: {} attempts", best).bright_green());
+    } else {
+        println!("{}", "🥇 Best Score: No wins yet".bright_yellow());
+    }
+    
+    println!("{}", "=".repeat(40).bright_blue());
+}
+
+// Function to show recent game history
+fn show_recent_history(stats: &GameStats) {
+    if stats.game_history.is_empty() {
+        return;
+    }
+    
+    println!();
+    println!("{}", "📜 RECENT GAMES 📜".bright_magenta());
+    println!("{}", "─".repeat(50).bright_blue());
+    
+    // Show last 5 games
+    let recent_games = stats.game_history.iter().rev().take(5);
+    
+    for (i, game) in recent_games.enumerate() {
+        let result_icon = if game.won { "��" } else { "💀" };
+        
+        println!("{}. {} {} - {} attempts, {} lives left ({})", 
+            i + 1,
+            result_icon,
+            if game.won { "WON" } else { "LOST" },
+            game.attempts,
+            game.lives_remaining,
+            game.difficulty
+        );
+    }
+    
+    println!("{}", "─".repeat(50).bright_blue());
+}
+
 fn main() {
+    // Load existing statistics
+    let mut stats = load_stats();
+    
     show_game_title();
     let lives = show_difficulty_menu();
     
@@ -81,6 +217,7 @@ fn main() {
     let secret_number = rand::rng().random_range(1..=100);
     let mut attempts = 0;
     let mut current_lives = lives;
+    let difficulty_name = get_difficulty_name(lives);
 
     loop {
         attempts += 1;
@@ -135,6 +272,33 @@ fn main() {
                 println!("{}", format!("📊 Total attempts: {}", attempts).cyan());
                 println!("{}", format!("💖 Lives remaining: {}", current_lives).green());
                 println!("{}", "=".repeat(50).bright_green());
+                
+                // Update statistics for win
+                stats.total_games += 1;
+                stats.games_won += 1;
+                stats.total_attempts += attempts;
+                
+                // Update best score if this is better
+                if let Some(current_best) = stats.best_score {
+                    if attempts < current_best {
+                        stats.best_score = Some(attempts);
+                        println!("{}", "🏆 NEW BEST SCORE! 🏆".bright_green());
+                    }
+                } else {
+                    stats.best_score = Some(attempts);
+                    println!("{}", "🏆 FIRST WIN! 🏆".bright_green());
+                }
+                
+                // Add to game history
+                let game_result = GameResult {
+                    attempts,
+                    lives_remaining: current_lives,
+                    won: true,
+                    difficulty: difficulty_name.clone(),
+                    timestamp: chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+                };
+                stats.game_history.push(game_result);
+                
                 break;
             }
         }
@@ -145,7 +309,35 @@ fn main() {
             println!("{}", format!("🎯 The secret number was: {}", secret_number).bright_red());
             println!("{}", format!("📊 Total attempts: {}", attempts).cyan());
             println!("{}", "=".repeat(50).bright_red());
+            
+            // Update statistics for loss
+            stats.total_games += 1;
+            stats.games_lost += 1;
+            stats.total_attempts += attempts;
+            
+            // Add to game history
+            let game_result = GameResult {
+                attempts,
+                lives_remaining: current_lives,
+                won: false,
+                difficulty: difficulty_name.clone(),
+                timestamp: chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+            };
+            stats.game_history.push(game_result);
+            
             break;
         }
     }
+    
+    // Save updated statistics
+    if let Err(e) = save_stats(&stats) {
+        println!("{}", format!("⚠️  Failed to save statistics: {}", e).yellow());
+    }
+    
+    // Show final statistics
+    show_statistics(&stats);
+    show_recent_history(&stats);
+    
+    println!();
+    println!("{}", "Thanks for playing! 🎮".bright_cyan());
 }

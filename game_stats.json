@@ -1,0 +1,23 @@
+{
+  "total_games": 2,
+  "games_won": 2,
+  "games_lost": 0,
+  "total_attempts": 14,
+  "best_score": 6,
+  "game_history": [
+    {
+      "attempts": 6,
+      "lives_remaining": 5,
+      "won": true,
+      "difficulty": "Easy",
+      "timestamp": "2025-06-25 21:54:31"
+    },
+    {
+      "attempts": 8,
+      "lives_remaining": 3,
+      "won": true,
+      "difficulty": "Easy",
+      "timestamp": "2025-06-25 21:55:29"
+    }
+  ]
+}
