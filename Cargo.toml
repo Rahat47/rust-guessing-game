@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 rand = "0.9.0"
 colored = "2.0"
-indicatif = "0.17"
 crossterm = "0.27"
 console = "0.15"
 dialoguer = "0.11"
