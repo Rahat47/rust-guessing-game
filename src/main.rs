@@ -4,7 +4,20 @@ use rand::Rng;
 
 fn main() {
     println!("Guess the number!");
-    let mut lives = 10;
+    // let user decide lives
+    println!("How many lives do you want to play with?");
+    let mut lives_input = String::new();
+
+    io::stdin().read_line(&mut lives_input).expect("Failed to read line");
+
+    let mut lives: u32 = match lives_input.trim().parse() {
+        Ok(num) => num,
+        Err(_) => {
+            println!("Please enter a valid number!");
+            return;
+        }
+    };
+
     println!("You have {lives} lives. Good luck!");
 
     let secret_number = rand::thread_rng().gen_range(1..=100);
