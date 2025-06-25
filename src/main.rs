@@ -4,9 +4,13 @@ use colored::*;
 use console::Term;
 use dialoguer::{Input, Select};
 
-fn show_game_title() {
+fn clear_screen() {
     let term = Term::stdout();
     term.clear_screen().unwrap();
+}
+
+fn show_game_title() {
+    clear_screen();
     
     println!("{}", "=".repeat(60).bright_blue());
     println!("{}", "🎯 THE ULTIMATE GUESSING GAME 🎯".bright_yellow());
@@ -17,6 +21,8 @@ fn show_game_title() {
 }
 
 fn show_win_screen() {
+    clear_screen();
+
     println!();
     println!("{}", "🎉".repeat(30).bright_green());
     println!("{}", "🏆 CONGRATULATIONS! YOU WIN! 🏆".bright_green());
@@ -25,6 +31,8 @@ fn show_win_screen() {
 }
 
 fn show_game_over_screen() {
+    clear_screen();
+
     println!();
     println!("{}", "💀".repeat(20).bright_red());
     println!("{}", "💀 GAME OVER! 💀".bright_red());
