@@ -2,6 +2,8 @@
 
 A feature-rich number guessing game built in Rust with a beautiful terminal interface, persistent statistics, and modular architecture.
 
+Building this while learning new features of Rust programming language.
+
 ## 🎮 Game Features
 
 ### Core Gameplay
