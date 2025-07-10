@@ -7,9 +7,11 @@ use crate::ui::{
     show_difficulty_menu, show_statistics, show_recent_history, wait_for_enter
 };
 use crate::stats::{load_stats, save_stats, create_game_result};
+use crate::audio;
 
 /// Plays a single game
 pub fn play_game() {
+    audio::play_start_sound();
     // Load existing statistics
     let mut stats = load_stats();
     
@@ -54,6 +56,7 @@ pub fn play_game() {
             .unwrap();
 
         println!("{}", format!("🎯 You guessed: {}", guess).bright_white());
+        audio::play_guess_sound();
 
         match guess.cmp(&secret_number) {
             Ordering::Less => {
@@ -71,6 +74,7 @@ pub fn play_game() {
                 }
             },
             Ordering::Equal => {
+                audio::play_win_sound();
                 show_win_screen();
                 println!("{}", format!("🎯 The secret number was: {}", secret_number).bright_green());
                 println!("{}", format!("📊 Total attempts: {}", attempts).cyan());
@@ -96,6 +100,7 @@ pub fn play_game() {
 
         // Check if player ran out of lives
         if current_lives == 0 {
+            audio::play_game_over_sound();
             show_game_over_screen();
             println!("{}", format!("🎯 The secret number was: {}", secret_number).bright_red());
             println!("{}", format!("📊 Total attempts: {}", attempts).cyan());

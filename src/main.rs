@@ -4,6 +4,7 @@ mod utils;
 mod ui;
 mod stats;
 mod game;
+mod audio;
 
 // Main function - now much cleaner and focused
 fn main() {
